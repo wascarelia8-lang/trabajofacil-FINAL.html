@@ -6,7 +6,7 @@
 <title>Trabajo Facil - Empleos en Republica Dominicana</title>
 <meta name="description" content="Encuentra trabajo rapido en Republica Dominicana.">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{--bg:#06090F;--bg2:#0C1220;--bg3:#111827;--g1:rgba(255,255,255,.04);--g2:rgba(255,255,255,.07);--b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);--b3:rgba(255,255,255,.20);--blue:#2563EB;--blue2:#3B82F6;--blue3:#60A5FA;--blue4:#93C5FD;--glow:rgba(37,99,235,.22);--glow2:rgba(37,99,235,.09);--grn:#10B981;--grn2:#34D399;--amb:#F59E0B;--red:#EF4444;--red2:#FCA5A5;--pur:#8B5CF6;--pur2:#A78BFA;--t1:#F1F5F9;--t2:#94A3B8;--t3:#64748B;--ff:'Sora',sans-serif;--fb:'Inter',sans-serif;--r:10px;--r2:14px;--r3:20px;--tr:all .17s cubic-bezier(.4,0,.2,1);--sh:0 4px 20px rgba(0,0,0,.45);--sh2:0 8px 40px rgba(0,0,0,.6)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -758,7 +758,7 @@ async function openDetail(jid) {
   try {
     var res = await SB.from('jobs').select('*,companies(name,logo_url,email,whatsapp,description,website),categories(name),cities(name)').eq('id', jid).single();
     if (res.error) throw res.error;
-    SB.rpc('increment_job_views', {job_id_input: jid}).catch(function() {});
+    if(SB && SB.rpc) { SB.rpc('increment_job_views', {job_id_input: jid}).then(function(){}).catch(function(){}); }
     renderDetail(res.data);
   } catch(e) {
     document.getElementById('jdLay').innerHTML = '<div class="empty"><span class="ei">&#9888;&#65039;</span><div class="et">No se pudo cargar</div><div class="es">' + e.message + '</div></div>';
@@ -1159,7 +1159,20 @@ function isNew(d) { return (Date.now()-new Date(d))<3*24*60*60*1000; }
 function fmtD(d) { return d?new Date(d).toLocaleDateString('es-DO',{day:'2-digit',month:'short',year:'numeric'}):''; }
 
 // ===== START =====
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', function() {
+  var attempts = 0;
+  var check = setInterval(function() {
+    attempts++;
+    if (window.supabase && window.supabase.createClient) {
+      clearInterval(check);
+      init();
+    } else if (attempts > 20) {
+      clearInterval(check);
+      console.error('Supabase no cargo');
+      init();
+    }
+  }, 100);
+});
 </script>
 </body>
 </html>
