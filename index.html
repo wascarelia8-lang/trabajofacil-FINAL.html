@@ -340,6 +340,7 @@ textarea.fi2{resize:vertical;min-height:80px;line-height:1.6}
           <button class="dlink on" id="dl-ov" onclick="ds('ov')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Resumen</button>
           <button class="dlink" id="dl-mj" onclick="ds('mj')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>Mis vacantes</button>
           <button class="dlink" id="dl-nj" onclick="ds('nj')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nueva vacante</button>
+          <button class="dlink" id="dl-pv" onclick="ds('pv')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Pegar vacante</button>
           <button class="dlink" id="dl-ca" onclick="ds('ca')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Candidatos</button>
           <button class="dlink" id="dl-pr" onclick="ds('pr')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Mi empresa</button>
           <div class="dsl" id="adminLbl" style="display:none">Admin</div>
@@ -383,6 +384,50 @@ textarea.fi2{resize:vertical;min-height:80px;line-height:1.6}
               <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:14px;border-top:1px solid var(--b1)">
                 <button class="btn btn-g" onclick="ds('mj')">Cancelar</button>
                 <button class="btn btn-p" id="saveJBtn" onclick="saveJob()" style="min-width:148px">Publicar vacante</button>
+              </div>
+            </div>
+          </div>
+          <div class="dsec" id="ds-pv">
+            <div class="dtitle">Pegar vacante</div>
+            <p class="dsub">Pega el texto de la vacante y la IA la interpreta automaticamente</p>
+            <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:24px;max-width:700px">
+              <div class="fg2">
+                <label class="fl2">Pega el texto aqui</label>
+                <textarea class="fi2" id="pvText" rows="10" placeholder="Ejemplo:&#10;&#10;Empresa XYZ busca Vendedor&#10;Ciudad: Santiago&#10;Salario: RD$25,000&#10;Requisitos: experiencia en ventas...&#10;Contacto: 809-000-0000"></textarea>
+              </div>
+              <button class="btn btn-p" id="pvBtn" onclick="interpretarVacante()" style="width:100%;padding:13px;font-size:15px">&#9889; Interpretar con IA</button>
+              <div id="pvResult" style="display:none;margin-top:20px">
+                <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:var(--r);padding:14px;margin-bottom:16px">
+                  <p style="font-size:13px;color:var(--blue3);font-weight:600;margin-bottom:4px">&#10003; Vacante interpretada — revisa y confirma</p>
+                  <p style="font-size:12px;color:var(--t2)">Puedes editar cualquier campo antes de publicar</p>
+                </div>
+                <div class="fg2"><label class="fl2">Titulo</label><input type="text" class="fi2" id="pvT"></div>
+                <div class="fgrid">
+                  <div class="fg2"><label class="fl2">Ciudad</label><select class="fi2" id="pvCit"><option value="">Selecciona...</option></select></div>
+                  <div class="fg2"><label class="fl2">Categoria</label><select class="fi2" id="pvCat"><option value="">Selecciona...</option></select></div>
+                </div>
+                <div class="fgrid">
+                  <div class="fg2"><label class="fl2">Modalidad</label><select class="fi2" id="pvMod"><option value="presencial">Presencial</option><option value="remoto">Remoto</option><option value="hibrido">Hibrido</option></select></div>
+                  <div class="fg2"><label class="fl2">Jornada</label><select class="fi2" id="pvSch"><option value="tiempo_completo">Tiempo completo</option><option value="medio_tiempo">Medio tiempo</option><option value="freelance">Freelance</option></select></div>
+                </div>
+                <div class="fgrid">
+                  <div class="fg2"><label class="fl2">Salario minimo</label><input type="number" class="fi2" id="pvSmin" placeholder="15000"></div>
+                  <div class="fg2"><label class="fl2">Salario maximo</label><input type="number" class="fi2" id="pvSmax" placeholder="30000"></div>
+                </div>
+                <div class="fg2"><label class="fl2">Descripcion</label><textarea class="fi2" id="pvDesc" rows="4"></textarea></div>
+                <div class="fg2"><label class="fl2">Requisitos</label><textarea class="fi2" id="pvReq" rows="3"></textarea></div>
+                <div class="fgrid">
+                  <div class="fg2"><label class="fl2">Email contacto</label><input type="email" class="fi2" id="pvCE"></div>
+                  <div class="fg2"><label class="fl2">WhatsApp contacto</label><input type="tel" class="fi2" id="pvCW"></div>
+                </div>
+                <div class="fgrid">
+                  <div class="fg2"><label class="fl2">Urgente?</label><select class="fi2" id="pvUrg"><option value="false">No</option><option value="true">Si</option></select></div>
+                  <div class="fg2"><label class="fl2">Destacada?</label><select class="fi2" id="pvFeat"><option value="false">No</option><option value="true">Si</option></select></div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:6px">
+                  <button class="btn btn-g" onclick="document.getElementById('pvResult').style.display='none'">Cancelar</button>
+                  <button class="btn btn-p" id="pvSaveBtn" onclick="publicarVacanteIA()" style="flex:1;padding:12px">Publicar vacante</button>
+                </div>
               </div>
             </div>
           </div>
@@ -627,14 +672,14 @@ async function fillSelects() {
     var cr = await SB.from('cities').select('*').order('name');
     var catr = await SB.from('categories').select('*').order('name');
     var cities = cr.data || [], cats = catr.data || [];
-    ['fcity','jCit','coCity','prCity'].forEach(function(id) {
+    ['fcity','jCit','coCity','prCity','pvCit'].forEach(function(id) {
       var el = document.getElementById(id); if (!el) return;
       var def = el.options[0] ? el.options[0].text : '';
       var html = '<option value="">' + def + '</option>';
       cities.forEach(function(c) { html += '<option value="' + c.id + '">' + c.name + '</option>'; });
       el.innerHTML = html;
     });
-    ['fcat','jCat'].forEach(function(id) {
+    ['fcat','jCat','pvCat'].forEach(function(id) {
       var el = document.getElementById(id); if (!el) return;
       var def = el.options[0] ? el.options[0].text : '';
       var html = '<option value="">' + def + '</option>';
@@ -1107,6 +1152,108 @@ async function loadAU(){var tb=document.getElementById('auTb');if(!tb||!SB)retur
 function rAU(users){var tb=document.getElementById('auTb');if(!tb)return;if(!users.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--t3)">Sin usuarios</td></tr>';return;}tb.innerHTML=users.map(function(u){var r=u.role||'user';return'<tr><td class="tdm">'+(u.full_name||'Sin nombre')+'</td><td><span class="bx '+(r==='admin'?'bad':r==='company'?'bc':'bi')+'">'+r+'</span></td><td>'+((u.companies&&u.companies.name)||'-')+'</td><td class="tds">'+fmtD(u.created_at)+'</td><td><div class="acts">'+(r!=='admin'?'<button class="btn btn-g btn-s" onclick="setR(\''+u.id+'\',\'admin\')">Admin</button>':'')+(r!=='company'?'<button class="btn btn-g btn-s" onclick="setR(\''+u.id+'\',\'company\')">Empresa</button>':'')+(r!=='user'?'<button class="btn btn-g btn-s" onclick="setR(\''+u.id+'\',\'user\')">Usuario</button>':'')+'</div></td></tr>';}).join('');}
 function fAU(){var s=(document.getElementById('auSrch')||{}).value||'';var r=(document.getElementById('auRole')||{}).value||'';rAU(allAU.filter(function(u){if(s&&!(u.full_name||'').toLowerCase().includes(s.toLowerCase()))return false;if(r&&u.role!==r)return false;return true;}));}
 async function setR(uid,role){if(!SB)return;try{await SB.from('profiles').update({role:role}).eq('id',uid);toast('Rol actualizado','','ok');loadAU();}catch(e){toast('Error',e.message,'err');}}
+
+// ===== IA VACANTE =====
+async function interpretarVacante() {
+  var texto = document.getElementById('pvText').value.trim();
+  if (!texto) { toast('Pega el texto de la vacante primero', '', 'warn'); return; }
+  ld('pvBtn', true, 'Interpretando con IA...');
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: 'Extrae la informacion de esta vacante de empleo y responde SOLO con un JSON valido sin markdown ni explicaciones. El JSON debe tener estos campos exactos: titulo, ciudad, salario_min (numero o null), salario_max (numero o null), modalidad (presencial/remoto/hibrido), descripcion, requisitos, email_contacto, whatsapp_contacto, es_urgente (true/false). Ciudad debe ser una de estas: Distrito Nacional, Santo Domingo Este, Santo Domingo Norte, Santo Domingo Oeste, Santiago, San Cristobal, Punta Cana, La Vega, San Pedro, La Romana, Otras ciudades. Texto de la vacante: ' + texto
+        }]
+      })
+    });
+    var data = await response.json();
+    var txt = data.content[0].text.trim();
+    // Remove markdown if present
+    txt = txt.replace(/```json/g,'').replace(/```/g,'').trim();
+    var j = JSON.parse(txt);
+
+    // Fill fields
+    var pvT = document.getElementById('pvT'); if(pvT) pvT.value = j.titulo || '';
+    var pvDesc = document.getElementById('pvDesc'); if(pvDesc) pvDesc.value = j.descripcion || '';
+    var pvReq = document.getElementById('pvReq'); if(pvReq) pvReq.value = j.requisitos || '';
+    var pvCE = document.getElementById('pvCE'); if(pvCE) pvCE.value = j.email_contacto || '';
+    var pvCW = document.getElementById('pvCW'); if(pvCW) pvCW.value = j.whatsapp_contacto || '';
+    var pvSmin = document.getElementById('pvSmin'); if(pvSmin) pvSmin.value = j.salario_min || '';
+    var pvSmax = document.getElementById('pvSmax'); if(pvSmax) pvSmax.value = j.salario_max || '';
+    var pvMod = document.getElementById('pvMod'); if(pvMod) pvMod.value = j.modalidad || 'presencial';
+    var pvUrg = document.getElementById('pvUrg'); if(pvUrg) pvUrg.value = j.es_urgente ? 'true' : 'false';
+
+    // Match city
+    var pvCit = document.getElementById('pvCit');
+    if (pvCit && j.ciudad) {
+      for (var i = 0; i < pvCit.options.length; i++) {
+        if (pvCit.options[i].text.toLowerCase().includes(j.ciudad.toLowerCase()) ||
+            j.ciudad.toLowerCase().includes(pvCit.options[i].text.toLowerCase())) {
+          pvCit.selectedIndex = i; break;
+        }
+      }
+    }
+
+    // Fill selects for pvCit and pvCat same as jCit/jCat
+    var pvCitEl = document.getElementById('pvCit');
+    var jCitEl  = document.getElementById('jCit');
+    if (pvCitEl && jCitEl && pvCitEl.options.length <= 1) {
+      pvCitEl.innerHTML = jCitEl.innerHTML;
+    }
+    var pvCatEl = document.getElementById('pvCat');
+    var jCatEl  = document.getElementById('jCat');
+    if (pvCatEl && jCatEl && pvCatEl.options.length <= 1) {
+      pvCatEl.innerHTML = jCatEl.innerHTML;
+    }
+
+    document.getElementById('pvResult').style.display = 'block';
+    toast('Vacante interpretada!', 'Revisa y confirma los datos', 'ok');
+  } catch(e) {
+    toast('Error al interpretar', e.message, 'err');
+    console.error(e);
+  }
+  finally { ld('pvBtn', false, '&#9889; Interpretar con IA'); }
+}
+
+async function publicarVacanteIA() {
+  if (!SB || !company) { toast('Inicia sesion primero', '', 'err'); return; }
+  var title = document.getElementById('pvT') ? document.getElementById('pvT').value.trim() : '';
+  var desc  = document.getElementById('pvDesc') ? document.getElementById('pvDesc').value.trim() : '';
+  if (!title || !desc) { toast('Titulo y descripcion son obligatorios', '', 'err'); return; }
+  ld('pvSaveBtn', true, 'Publicando...');
+  var payload = {
+    company_id: company.id,
+    title: title,
+    description: desc,
+    requirements: document.getElementById('pvReq').value || null,
+    category_id: document.getElementById('pvCat').value || null,
+    city_id: document.getElementById('pvCit').value || null,
+    modality: document.getElementById('pvMod').value || 'presencial',
+    schedule: document.getElementById('pvSch').value || 'tiempo_completo',
+    salary_min: parseInt(document.getElementById('pvSmin').value) || null,
+    salary_max: parseInt(document.getElementById('pvSmax').value) || null,
+    contact_email: document.getElementById('pvCE').value || null,
+    contact_whatsapp: document.getElementById('pvCW').value || null,
+    is_urgent: document.getElementById('pvUrg').value === 'true',
+    is_featured: document.getElementById('pvFeat').value === 'true',
+    is_active: true,
+    updated_at: new Date().toISOString()
+  };
+  try {
+    var res = await SB.from('jobs').insert(payload);
+    if (res.error) throw res.error;
+    toast('Vacante publicada!', 'Ya visible para candidatos', 'ok');
+    document.getElementById('pvText').value = '';
+    document.getElementById('pvResult').style.display = 'none';
+    ds('mj'); loadStats();
+  } catch(e) { toast('Error', e.message, 'err'); }
+  finally { ld('pvSaveBtn', false, 'Publicar vacante'); }
+}
 
 // ===== NAVIGATION =====
 function go(page, param) {
