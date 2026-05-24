@@ -4,7 +4,7 @@ Plataforma de empleos simple y rápida para República Dominicana.
 
 ## 🌐 Ver en vivo
 
-https://wascarelia8-lang.github.io/trabajofacil
+[https://wascarelia8-lang.github.io/trabajofacil-FINAL.html/](https://wascarelia8-lang.github.io/trabajofacil-FINAL.html/)
 
 ## ✨ Funciones
 
