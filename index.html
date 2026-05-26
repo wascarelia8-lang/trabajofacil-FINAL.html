@@ -396,7 +396,7 @@ textarea.fi2{resize:vertical;min-height:80px;line-height:1.6}
                 <label class="fl2">Pega el texto aqui</label>
                 <textarea class="fi2" id="pvText" rows="10" placeholder="Ejemplo:&#10;&#10;Empresa XYZ busca Vendedor&#10;Ciudad: Santiago&#10;Salario: RD$25,000&#10;Requisitos: experiencia en ventas...&#10;Contacto: 809-000-0000"></textarea>
               </div>
-              <button class="btn btn-p" id="pvBtn" onclick="interpretarVacante()" style="width:100%;padding:13px;font-size:15px">&#9889; Interpretar con IA</button>
+              <button class="btn btn-p" id="pvBtn" onclick="interpretarVacante()" style="width:100%;padding:13px;font-size:15px">&#9889; Analizar vacante</button>
               <div id="pvResult" style="display:none;margin-top:20px">
                 <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:var(--r);padding:14px;margin-bottom:16px">
                   <p style="font-size:13px;color:var(--blue3);font-weight:600;margin-bottom:4px">&#10003; Vacante interpretada — revisa y confirma</p>
@@ -1155,52 +1155,99 @@ function fAU(){var s=(document.getElementById('auSrch')||{}).value||'';var r=(do
 async function setR(uid,role){if(!SB)return;try{await SB.from('profiles').update({role:role}).eq('id',uid);toast('Rol actualizado','','ok');loadAU();}catch(e){toast('Error',e.message,'err');}}
 
 // ===== IA VACANTE =====
-async function interpretarVacante() {
+function interpretarVacante() {
   var texto = document.getElementById('pvText').value.trim();
   if (!texto) { toast('Pega el texto de la vacante primero', '', 'warn'); return; }
-  ld('pvBtn', true, 'Interpretando con IA...');
+  ld('pvBtn', true, 'Analizando...');
+
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: 'Extrae la informacion de esta vacante de empleo y responde SOLO con un JSON valido sin markdown ni explicaciones. El JSON debe tener estos campos exactos: titulo, ciudad, salario_min (numero o null), salario_max (numero o null), modalidad (presencial/remoto/hibrido), descripcion, requisitos, email_contacto, whatsapp_contacto, es_urgente (true/false). Ciudad debe ser una de estas: Distrito Nacional, Santo Domingo Este, Santo Domingo Norte, Santo Domingo Oeste, Santiago, San Cristobal, Punta Cana, La Vega, San Pedro, La Romana, Otras ciudades. Texto de la vacante: ' + texto
-        }]
-      })
-    });
-    var data = await response.json();
-    var txt = data.content[0].text.trim();
-    // Remove markdown if present
-    txt = txt.replace(/```json/g,'').replace(/```/g,'').trim();
-    var j = JSON.parse(txt);
+    var lineas = texto.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
 
-    // Fill fields
-    var pvT = document.getElementById('pvT'); if(pvT) pvT.value = j.titulo || '';
-    var pvDesc = document.getElementById('pvDesc'); if(pvDesc) pvDesc.value = j.descripcion || '';
-    var pvReq = document.getElementById('pvReq'); if(pvReq) pvReq.value = j.requisitos || '';
-    var pvCE = document.getElementById('pvCE'); if(pvCE) pvCE.value = j.email_contacto || '';
-    var pvCW = document.getElementById('pvCW'); if(pvCW) pvCW.value = j.whatsapp_contacto || '';
-    var pvSmin = document.getElementById('pvSmin'); if(pvSmin) pvSmin.value = j.salario_min || '';
-    var pvSmax = document.getElementById('pvSmax'); if(pvSmax) pvSmax.value = j.salario_max || '';
-    var pvMod = document.getElementById('pvMod'); if(pvMod) pvMod.value = j.modalidad || 'presencial';
-    var pvUrg = document.getElementById('pvUrg'); if(pvUrg) pvUrg.value = j.es_urgente ? 'true' : 'false';
+    // TITULO: primera linea que no sea emoji ni very short
+    var titulo = '';
+    var skipWords = ['estamos','buscamos','se busca','urgente','oportunidad','empleo','trabajo','vacante','oferta','hiring','contratando','disponible'];
+    for (var i=0; i<lineas.length; i++) {
+      var l = lineas[i].replace(/[🔹🔸📌📍✅❌💼🏢📢🎯⭐🌟💡🚀•·◆◇▪▸►]/g,'').trim();
+      if (l.length > 5 && l.length < 80) {
+        var low = l.toLowerCase();
+        var isSkip = false;
+        for(var s=0;s<skipWords.length;s++){if(low.indexOf(skipWords[s])===0){isSkip=true;break;}}
+        if(!isSkip){titulo=l;break;}
+      }
+    }
 
-    // Match city
+    // EMAIL
+    var emailMatch = texto.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+    var email = emailMatch ? emailMatch[0] : '';
+
+    // WHATSAPP/TELEFONO
+    var telMatch = texto.match(/(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/);
+    var tel = telMatch ? telMatch[0].replace(/[^\d+]/g,'') : '';
+    if (tel.length < 7) tel = '';
+
+    // SALARIO
+    var salMin = null, salMax = null;
+    var salMatch = texto.match(/(?:RD\$|DOP|RD|salario|sueldo)[^\d]*(\d[\d,\.]+)(?:[^\d]*(?:a|-|hasta|–)[^\d]*(\d[\d,\.]+))?/i);
+    if (salMatch) {
+      salMin = parseInt(salMatch[1].replace(/[,\.]/g,''));
+      if (salMatch[2]) salMax = parseInt(salMatch[2].replace(/[,\.]/g,''));
+    }
+
+    // CIUDAD
+    var ciudades = ['Distrito Nacional','Santo Domingo Este','Santo Domingo Norte','Santo Domingo Oeste','Santiago','San Cristobal','Punta Cana','La Vega','San Pedro','La Romana'];
+    var ciudadDetectada = '';
+    var textoLow = texto.toLowerCase();
+    for (var c=0; c<ciudades.length; c++) {
+      if (textoLow.indexOf(ciudades[c].toLowerCase()) !== -1) {
+        ciudadDetectada = ciudades[c]; break;
+      }
+    }
+    if (!ciudadDetectada && (textoLow.indexOf('santo domingo') !== -1 || textoLow.indexOf('d.n') !== -1 || textoLow.indexOf('dn ') !== -1)) {
+      ciudadDetectada = 'Distrito Nacional';
+    }
+
+    // URGENTE
+    var esUrgente = /urgente|inmediato|asap|ya mismo/i.test(texto);
+
+    // REMOTO
+    var modalidad = 'presencial';
+    if (/remoto|remote|teletrabajo|desde casa|home office/i.test(texto)) modalidad = 'remoto';
+    else if (/hibrido|híbrido|hybrid/i.test(texto)) modalidad = 'hibrido';
+
+    // DESCRIPCION: todo el texto limpio
+    var descripcion = texto;
+
+    // REQUISITOS: buscar lineas con palabras clave
+    var reqLineas = [];
+    for (var r=0; r<lineas.length; r++) {
+      var rl = lineas[r].toLowerCase();
+      if (rl.indexOf('requisit') !== -1 || rl.indexOf('experiencia') !== -1 || rl.indexOf('bachiller') !== -1 || rl.indexOf('licenciatur') !== -1 || rl.indexOf('conocimiento') !== -1) {
+        reqLineas.push(lineas[r]);
+      }
+    }
+
+    // LLENAR CAMPOS
+    var pvT = document.getElementById('pvT'); if(pvT) pvT.value = titulo;
+    var pvDesc = document.getElementById('pvDesc'); if(pvDesc) pvDesc.value = descripcion;
+    var pvReq = document.getElementById('pvReq'); if(pvReq) pvReq.value = reqLineas.join('\n');
+    var pvCE = document.getElementById('pvCE'); if(pvCE) pvCE.value = email;
+    var pvCW = document.getElementById('pvCW'); if(pvCW) pvCW.value = tel;
+    var pvSmin = document.getElementById('pvSmin'); if(pvSmin) pvSmin.value = salMin || '';
+    var pvSmax = document.getElementById('pvSmax'); if(pvSmax) pvSmax.value = salMax || '';
+    var pvMod = document.getElementById('pvMod'); if(pvMod) pvMod.value = modalidad;
+    var pvUrg = document.getElementById('pvUrg'); if(pvUrg) pvUrg.value = esUrgente ? 'true' : 'false';
+
+    // CIUDAD en select
     var pvCit = document.getElementById('pvCit');
-    if (pvCit && j.ciudad) {
-      for (var i = 0; i < pvCit.options.length; i++) {
-        if (pvCit.options[i].text.toLowerCase().includes(j.ciudad.toLowerCase()) ||
-            j.ciudad.toLowerCase().includes(pvCit.options[i].text.toLowerCase())) {
-          pvCit.selectedIndex = i; break;
+    if (pvCit && ciudadDetectada) {
+      for (var ci=0; ci<pvCit.options.length; ci++) {
+        if (pvCit.options[ci].text === ciudadDetectada) {
+          pvCit.selectedIndex = ci; break;
         }
       }
     }
 
-    // Fill selects for pvCit and pvCat same as jCit/jCat
+    // Copiar opciones de jCit/jCat si pvCit/pvCat estan vacios
     var pvCitEl = document.getElementById('pvCit');
     var jCitEl  = document.getElementById('jCit');
     if (pvCitEl && jCitEl && pvCitEl.options.length <= 1) {
@@ -1213,12 +1260,11 @@ async function interpretarVacante() {
     }
 
     document.getElementById('pvResult').style.display = 'block';
-    toast('Vacante interpretada!', 'Revisa y confirma los datos', 'ok');
+    toast('Vacante analizada!', 'Revisa los campos y ajusta lo necesario', 'ok');
   } catch(e) {
-    toast('Error al interpretar', e.message, 'err');
-    console.error(e);
+    toast('Error al analizar', e.message, 'err');
   }
-  finally { ld('pvBtn', false, '&#9889; Interpretar con IA'); }
+  finally { ld('pvBtn', false, '&#9889; Analizar vacante'); }
 }
 
 async function publicarVacanteIA() {
