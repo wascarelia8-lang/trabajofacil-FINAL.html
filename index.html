@@ -16,6 +16,8 @@ h1,h2,h3,h4{font-family:var(--ff);line-height:1.15}
 button{font-family:var(--fb);cursor:pointer;border:none;outline:none;background:none}
 input,select,textarea{font-family:var(--fb);outline:none}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+select option{background:#1e293b!important;color:#f1f5f9!important}
+select{color:#f1f5f9!important}
 .app{min-height:100vh;display:flex;flex-direction:column}.cnt{max-width:1180px;margin:0 auto;padding:0 20px;width:100%}.main{flex:1;padding-top:60px}
 .page{display:none}.page.show{display:block;animation:fu .2s ease both}
 @keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -1157,114 +1159,75 @@ async function setR(uid,role){if(!SB)return;try{await SB.from('profiles').update
 // ===== IA VACANTE =====
 function interpretarVacante() {
   var texto = document.getElementById('pvText').value.trim();
-  if (!texto) { toast('Pega el texto de la vacante primero', '', 'warn'); return; }
+  if (!texto) { toast('Pega el texto primero', '', 'warn'); return; }
   ld('pvBtn', true, 'Analizando...');
 
-  try {
-    var lineas = texto.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  // Copiar selects si estan vacios
+  var pvCitEl = document.getElementById('pvCit');
+  var jCitEl  = document.getElementById('jCit');
+  if (pvCitEl && jCitEl) pvCitEl.innerHTML = jCitEl.innerHTML;
+  var pvCatEl = document.getElementById('pvCat');
+  var jCatEl  = document.getElementById('jCat');
+  if (pvCatEl && jCatEl) pvCatEl.innerHTML = jCatEl.innerHTML;
 
-    // TITULO: primera linea que no sea emoji ni very short
-    var titulo = '';
-    var skipWords = ['estamos','buscamos','se busca','urgente','oportunidad','empleo','trabajo','vacante','oferta','hiring','contratando','disponible'];
-    for (var i=0; i<lineas.length; i++) {
-      var l = lineas[i].replace(/[🔹🔸📌📍✅❌💼🏢📢🎯⭐🌟💡🚀•·◆◇▪▸►]/g,'').trim();
-      if (l.length > 5 && l.length < 80) {
-        var low = l.toLowerCase();
-        var isSkip = false;
-        for(var s=0;s<skipWords.length;s++){if(low.indexOf(skipWords[s])===0){isSkip=true;break;}}
-        if(!isSkip){titulo=l;break;}
-      }
+  var lineas = texto.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+
+  // TITULO
+  var titulo = '';
+  for (var i=0;i<lineas.length;i++) {
+    var l = lineas[i].replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}•·◆◇▪▸►🔹🔸]/gu,'').trim();
+    if (l.length>5 && l.length<100 && !/^si cumples|^interesados|^aplica|^enviar|^compartir|^postulate/i.test(l)) {
+      titulo=l; break;
     }
-
-    // EMAIL
-    var emailMatch = texto.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-    var email = emailMatch ? emailMatch[0] : '';
-
-    // WHATSAPP/TELEFONO
-    var telMatch = texto.match(/(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/);
-    var tel = telMatch ? telMatch[0].replace(/[^\d+]/g,'') : '';
-    if (tel.length < 7) tel = '';
-
-    // SALARIO
-    var salMin = null, salMax = null;
-    var salMatch = texto.match(/(?:RD\$|DOP|RD|salario|sueldo)[^\d]*(\d[\d,\.]+)(?:[^\d]*(?:a|-|hasta|–)[^\d]*(\d[\d,\.]+))?/i);
-    if (salMatch) {
-      salMin = parseInt(salMatch[1].replace(/[,\.]/g,''));
-      if (salMatch[2]) salMax = parseInt(salMatch[2].replace(/[,\.]/g,''));
-    }
-
-    // CIUDAD
-    var ciudades = ['Distrito Nacional','Santo Domingo Este','Santo Domingo Norte','Santo Domingo Oeste','Santiago','San Cristobal','Punta Cana','La Vega','San Pedro','La Romana'];
-    var ciudadDetectada = '';
-    var textoLow = texto.toLowerCase();
-    for (var c=0; c<ciudades.length; c++) {
-      if (textoLow.indexOf(ciudades[c].toLowerCase()) !== -1) {
-        ciudadDetectada = ciudades[c]; break;
-      }
-    }
-    if (!ciudadDetectada && (textoLow.indexOf('santo domingo') !== -1 || textoLow.indexOf('d.n') !== -1 || textoLow.indexOf('dn ') !== -1)) {
-      ciudadDetectada = 'Distrito Nacional';
-    }
-
-    // URGENTE
-    var esUrgente = /urgente|inmediato|asap|ya mismo/i.test(texto);
-
-    // REMOTO
-    var modalidad = 'presencial';
-    if (/remoto|remote|teletrabajo|desde casa|home office/i.test(texto)) modalidad = 'remoto';
-    else if (/hibrido|híbrido|hybrid/i.test(texto)) modalidad = 'hibrido';
-
-    // DESCRIPCION: todo el texto limpio
-    var descripcion = texto;
-
-    // REQUISITOS: buscar lineas con palabras clave
-    var reqLineas = [];
-    for (var r=0; r<lineas.length; r++) {
-      var rl = lineas[r].toLowerCase();
-      if (rl.indexOf('requisit') !== -1 || rl.indexOf('experiencia') !== -1 || rl.indexOf('bachiller') !== -1 || rl.indexOf('licenciatur') !== -1 || rl.indexOf('conocimiento') !== -1) {
-        reqLineas.push(lineas[r]);
-      }
-    }
-
-    // LLENAR CAMPOS
-    var pvT = document.getElementById('pvT'); if(pvT) pvT.value = titulo;
-    var pvDesc = document.getElementById('pvDesc'); if(pvDesc) pvDesc.value = descripcion;
-    var pvReq = document.getElementById('pvReq'); if(pvReq) pvReq.value = reqLineas.join('\n');
-    var pvCE = document.getElementById('pvCE'); if(pvCE) pvCE.value = email;
-    var pvCW = document.getElementById('pvCW'); if(pvCW) pvCW.value = tel;
-    var pvSmin = document.getElementById('pvSmin'); if(pvSmin) pvSmin.value = salMin || '';
-    var pvSmax = document.getElementById('pvSmax'); if(pvSmax) pvSmax.value = salMax || '';
-    var pvMod = document.getElementById('pvMod'); if(pvMod) pvMod.value = modalidad;
-    var pvUrg = document.getElementById('pvUrg'); if(pvUrg) pvUrg.value = esUrgente ? 'true' : 'false';
-
-    // CIUDAD en select
-    var pvCit = document.getElementById('pvCit');
-    if (pvCit && ciudadDetectada) {
-      for (var ci=0; ci<pvCit.options.length; ci++) {
-        if (pvCit.options[ci].text === ciudadDetectada) {
-          pvCit.selectedIndex = ci; break;
-        }
-      }
-    }
-
-    // Copiar opciones de jCit/jCat si pvCit/pvCat estan vacios
-    var pvCitEl = document.getElementById('pvCit');
-    var jCitEl  = document.getElementById('jCit');
-    if (pvCitEl && jCitEl && pvCitEl.options.length <= 1) {
-      pvCitEl.innerHTML = jCitEl.innerHTML;
-    }
-    var pvCatEl = document.getElementById('pvCat');
-    var jCatEl  = document.getElementById('jCat');
-    if (pvCatEl && jCatEl && pvCatEl.options.length <= 1) {
-      pvCatEl.innerHTML = jCatEl.innerHTML;
-    }
-
-    document.getElementById('pvResult').style.display = 'block';
-    toast('Vacante analizada!', 'Revisa los campos y ajusta lo necesario', 'ok');
-  } catch(e) {
-    toast('Error al analizar', e.message, 'err');
   }
-  finally { ld('pvBtn', false, '&#9889; Analizar vacante'); }
+
+  // EMAIL
+  var em = texto.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+
+  // TELEFONO
+  var tel = texto.match(/(?:809|829|849|\+1)[\s\-]?\d{3}[\s\-]?\d{4}/);
+
+  // SALARIO
+  var salMin=null, salMax=null;
+  var sal = texto.match(/(?:RD\$|DOP)?\s*(\d{4,6})(?:\s*[-–]\s*(\d{4,6}))?/);
+  if(sal){salMin=parseInt(sal[1]);if(sal[2])salMax=parseInt(sal[2]);}
+
+  // CIUDAD
+  var ciudades=['Distrito Nacional','Santo Domingo Este','Santo Domingo Norte','Santo Domingo Oeste','Santiago','San Cristobal','Punta Cana','La Vega','San Pedro','La Romana','Higüey','Moca','Barahona','San Francisco de Macoris'];
+  var ciudadSel='';
+  var tl=texto.toLowerCase();
+  for(var c=0;c<ciudades.length;c++){if(tl.indexOf(ciudades[c].toLowerCase())!==-1){ciudadSel=ciudades[c];break;}}
+  if(!ciudadSel&&(tl.indexOf('santo domingo')!==-1||tl.indexOf(' d.n')!==-1||tl.indexOf('distrito')!==-1)) ciudadSel='Distrito Nacional';
+
+  // MODALIDAD
+  var mod='presencial';
+  if(/remoto|remote|teletrabajo|desde casa/i.test(texto)) mod='remoto';
+  else if(/hibrido|híbrido/i.test(texto)) mod='hibrido';
+
+  // URGENTE
+  var urg=/urgente|inmediato/i.test(texto);
+
+  // LLENAR
+  var set=function(id,v){var e=document.getElementById(id);if(e&&v!==null&&v!==undefined)e.value=v;};
+  set('pvT', titulo);
+  set('pvDesc', texto);
+  set('pvCE', em?em[0]:'');
+  set('pvCW', tel?tel[0].replace(/\D/g,''):'');
+  set('pvSmin', salMin||'');
+  set('pvSmax', salMax||'');
+  set('pvMod', mod);
+  set('pvUrg', urg?'true':'false');
+
+  // Ciudad en select
+  if(ciudadSel && pvCitEl) {
+    for(var ci=0;ci<pvCitEl.options.length;ci++){
+      if(pvCitEl.options[ci].text===ciudadSel){pvCitEl.selectedIndex=ci;break;}
+    }
+  }
+
+  document.getElementById('pvResult').style.display='block';
+  toast('Listo! Revisa y ajusta los campos','','ok');
+  ld('pvBtn', false, '&#9889; Analizar vacante');
 }
 
 async function publicarVacanteIA() {
