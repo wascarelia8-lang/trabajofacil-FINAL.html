@@ -1231,7 +1231,12 @@ function interpretarVacante() {
 }
 
 async function publicarVacanteIA() {
-  if (!SB || !company) { toast('Inicia sesion primero', '', 'err'); return; }
+  // Si no hay company, intentar recargar la sesion
+  if (!company && SB && user) {
+    var co = await SB.from('companies').select('*').eq('user_id', user.id).maybeSingle();
+    company = co.data;
+  }
+  if (!SB || !company) { toast('No se encontro empresa asociada', '', 'err'); return; }
   var title = document.getElementById('pvT') ? document.getElementById('pvT').value.trim() : '';
   var desc  = document.getElementById('pvDesc') ? document.getElementById('pvDesc').value.trim() : '';
   if (!title || !desc) { toast('Titulo y descripcion son obligatorios', '', 'err'); return; }
